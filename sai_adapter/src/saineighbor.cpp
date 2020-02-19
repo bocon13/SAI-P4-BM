@@ -1,4 +1,4 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
 
 void get_match_params_from_neighbor_entry(const sai_neighbor_entry_t *neighbor_entry, BmMatchParams &match_params, Switch_metadata *switch_metadata_ptr) {
   spdlog::get("logger")->info("neighbor_entry get match_params. rif object id: {}", neighbor_entry->rif_id);

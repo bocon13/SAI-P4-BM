@@ -1,4 +1,4 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
 
 sai_status_t sai_adapter::create_ipmc_group(
         _Out_ sai_object_id_t *ipmc_group_id,

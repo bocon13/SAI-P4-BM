@@ -62,10 +62,10 @@ typedef struct _sai_fdb_entry_t
     sai_mac_t mac_address;
 
     /** Bridge type */
-    sai_fdb_entry_bridge_type_t bridge_type;
+//    sai_fdb_entry_bridge_type_t bridge_type;
 
     /** Vlan ID. Valid for .1Q */
-    sai_vlan_id_t vlan_id;
+//    sai_vlan_id_t vlan_id;
 
     /**
      * @brief Bridge ID. Valid for .1D

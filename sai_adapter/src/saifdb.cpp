@@ -1,4 +1,4 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
 
 sai_status_t sai_adapter::create_fdb_entry(const sai_fdb_entry_t *fdb_entry,
                                            uint32_t attr_count,
@@ -99,6 +99,20 @@ sai_status_t sai_adapter::remove_fdb_entry(const sai_fdb_entry_t *fdb_entry) {
   return status;
 }
 
+
+sai_status_t sai_adapter::set_fdb_entry_attribute(
+        const sai_fdb_entry_t *fdb_entry,
+        const sai_attribute_t *attr) {
+  return SAI_STATUS_NOT_IMPLEMENTED;
+}
+
+sai_status_t sai_adapter::get_fdb_entry_attribute(
+        const sai_fdb_entry_t *fdb_entry,
+        uint32_t attr_count,
+        sai_attribute_t *attr_list) {
+  return SAI_STATUS_NOT_IMPLEMENTED;
+}
+
 sai_status_t sai_adapter::flush_fdb_entries(sai_object_id_t switch_id,
                                             uint32_t attr_count,
                                             const sai_attribute_t *attr_list) {
@@ -121,7 +135,8 @@ sai_status_t sai_adapter::flush_fdb_entries(sai_object_id_t switch_id,
       bridge_port_obj = switch_metadata_ptr->bridge_ports[attribute.value.oid];
       mode |= 1;
       break;
-    case SAI_FDB_FLUSH_ATTR_VLAN_ID:
+    //case SAI_FDB_FLUSH_ATTR_VLAN_ID:
+    case SAI_FDB_FLUSH_ATTR_BV_ID: //FIXME(BOC)
       vid = attribute.value.u16;
       vlan = switch_metadata_ptr->vlans[switch_metadata_ptr->GetVlanObjIdFromVid(vid)];
       if (vlan == SAI_NULL_OBJECT_ID) {
@@ -244,16 +259,17 @@ sai_status_t sai_adapter::flush_fdb_entries(sai_object_id_t switch_id,
 
 uint32_t
 sai_adapter::get_bridge_id_from_fdb_entry(const sai_fdb_entry_t *fdb_entry) {
-  (*logger)->info("get_bridge_id_from_fdb_entry. fdb_entry->bridge_type {} (SAI_FDB_ENTRY_BRIDGE_TYPE_1Q={})", fdb_entry->bridge_type, SAI_FDB_ENTRY_BRIDGE_TYPE_1Q);
-  if (fdb_entry->bridge_type == SAI_FDB_ENTRY_BRIDGE_TYPE_1Q) {
-    sai_object_id_t vlan_obj_id =
-        switch_metadata_ptr->GetVlanObjIdFromVid(fdb_entry->vlan_id);
-    if (vlan_obj_id != SAI_NULL_OBJECT_ID) {
-      return switch_metadata_ptr->vlans[vlan_obj_id]->bridge_id;
-    } else {
-      return fdb_entry->vlan_id;
-    }
-  } else {
-    return switch_metadata_ptr->bridges[fdb_entry->bridge_id]->bridge_id;
-  }
+  return 0; //FIXME(BOC)
+//  (*logger)->info("get_bridge_id_from_fdb_entry. fdb_entry->bridge_type {} (SAI_FDB_ENTRY_BRIDGE_TYPE_1Q={})", fdb_entry->bridge_type, SAI_FDB_ENTRY_BRIDGE_TYPE_1Q);
+//  if (fdb_entry->bridge_type == SAI_FDB_ENTRY_BRIDGE_TYPE_1Q) {
+//    sai_object_id_t vlan_obj_id =
+//        switch_metadata_ptr->GetVlanObjIdFromVid(fdb_entry->vlan_id);
+//    if (vlan_obj_id != SAI_NULL_OBJECT_ID) {
+//      return switch_metadata_ptr->vlans[vlan_obj_id]->bridge_id;
+//    } else {
+//      return fdb_entry->vlan_id;
+//    }
+//  } else {
+//    return switch_metadata_ptr->bridges[fdb_entry->bridge_id]->bridge_id;
+//  }
 }

@@ -92,7 +92,7 @@ public:
     this->hw_port = 0;
     this->l2_if = 0;
     this->pvid = 1;
-    this->bind_mode = SAI_PORT_BIND_MODE_PORT;
+//    this->bind_mode = SAI_PORT_BIND_MODE_PORT;
     this->is_lag = false;
     this->handle_ingress_lag = NULL_HANDLE;
     this->handle_port_cfg = NULL_HANDLE;

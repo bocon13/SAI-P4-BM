@@ -1,4 +1,4 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
 
 sai_status_t sai_adapter::create_ipmc_entry(
         _In_ const sai_ipmc_entry_t *ipmc_entry,

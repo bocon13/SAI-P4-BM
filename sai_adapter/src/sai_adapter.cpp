@@ -1,8 +1,19 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
+
+// #include <grpc/grpc.h>
+// #include <grpcpp/channel.h>
+// #include <grpcpp/client_context.h>
+// #include <grpcpp/create_channel.h>
+// #include <grpcpp/security/credentials.h>
+// #include "p4/v1/p4runtime.grpc.pb.h"
+// #include "gnmi/gnmi.grpc.pb.h"
+#include <iostream>
 
 StandardClient *sai_adapter::bm_bridge_client_ptr;
 SimplePreLAGClient *sai_adapter::bm_bridge_client_mc_ptr;
 StandardClient *sai_adapter::bm_router_client_ptr;
+// ::gnmi::gNMI::Stub *router_gnmi_stub;
+// ::p4::v1::P4Runtime::Stub *router_p4rt_stub;
 sai_id_map_t *sai_adapter::sai_id_map_ptr;
 Switch_metadata *sai_adapter::switch_metadata_ptr;
 std::vector<sai_object_id_t> *sai_adapter::switch_list_ptr;
@@ -26,11 +37,13 @@ sai_adapter::sai_adapter()
       bm_bridge_client(protocol),
       mc_protocol(new TMultiplexedProtocol(bprotocol, "simple_pre_lag")),
       bm_bridge_client_mc(mc_protocol),
-      router_socket(new TSocket("localhost", bm_port_router)),
-      router_transport(new TBufferedTransport(router_socket)),
-      router_bprotocol(new TBinaryProtocol(router_transport)),
-      router_protocol(new TMultiplexedProtocol(router_bprotocol, "standard")),
-      bm_router_client(router_protocol)
+      router_socket(new TSocket("localhost", bm_port_router)), // boc: remove
+      router_transport(new TBufferedTransport(router_socket)), // boc: remove
+      router_bprotocol(new TBinaryProtocol(router_transport)), // boc: remove
+      router_protocol(new TMultiplexedProtocol(router_bprotocol, "standard")), // boc: remove
+      bm_router_client(router_protocol), // boc: remove
+      router_channel(::grpc::CreateChannel("localhost:50051",
+                               grpc::InsecureChannelCredentials()))
        {
   // logger
   logger_o = spdlog::get("logger");
@@ -41,6 +54,13 @@ sai_adapter::sai_adapter()
   }
   logger = &logger_o;
 
+  auto state = router_channel->GetState(true);
+  router_channel->WaitForStateChange(state, gpr_inf_future(GPR_CLOCK_REALTIME));
+  std::cout << router_channel->GetState(false) << std::endl;
+
+  auto router_gnmi_stub = ::gnmi::gNMI::NewStub(router_channel);
+  auto router_p4rt_stub = ::p4::v1::P4Runtime::NewStub(router_channel);
+
   // start P4 link
   switch_list_ptr = &switch_list;
   switch_metadata_ptr = &switch_metadata;
@@ -50,7 +70,7 @@ sai_adapter::sai_adapter()
   sai_id_map_ptr = &sai_id_map;
   wildcard_entry = NULL;
   transport->open();
-  router_transport->open();
+  router_transport->open(); // boc: remove
 
   // api set
   switch_api.create_switch = &sai_adapter::create_switch;
@@ -63,6 +83,20 @@ sai_adapter::sai_adapter()
   port_api.set_port_attribute = &sai_adapter::set_port_attribute;
   port_api.get_port_attribute = &sai_adapter::get_port_attribute;
   port_api.get_port_stats = &sai_adapter::get_port_stats;
+  port_api.get_port_stats_ext = &sai_adapter::get_port_stats_ext;
+  port_api.clear_port_stats = &sai_adapter::clear_port_stats;
+  port_api.clear_port_all_stats = &sai_adapter::clear_port_all_stats;
+  port_api.create_port_pool = &sai_adapter::create_port_pool;
+  port_api.remove_port_pool = &sai_adapter::remove_port_pool;
+  port_api.set_port_pool_attribute = &sai_adapter::set_port_pool_attribute;
+  port_api.get_port_pool_attribute = &sai_adapter::get_port_pool_attribute;
+  port_api.get_port_pool_stats = &sai_adapter::get_port_pool_stats;
+  port_api.get_port_pool_stats_ext = &sai_adapter::get_port_pool_stats_ext;
+  port_api.clear_port_pool_stats = &sai_adapter::clear_port_pool_stats;
+  port_api.create_port_serdes = &sai_adapter::create_port_serdes;
+  port_api.remove_port_serdes = &sai_adapter::remove_port_serdes;
+  port_api.set_port_serdes_attribute = &sai_adapter::set_port_serdes_attribute;
+  port_api.get_port_serdes_attribute = &sai_adapter::get_port_serdes_attribute;
 
   bridge_api.create_bridge = &sai_adapter::create_bridge;
   bridge_api.remove_bridge = &sai_adapter::remove_bridge;
@@ -77,8 +111,8 @@ sai_adapter::sai_adapter()
 
   fdb_api.create_fdb_entry = &sai_adapter::create_fdb_entry;
   fdb_api.remove_fdb_entry = &sai_adapter::remove_fdb_entry;
-  // fdb_api.set_fdb_entry_attribute = &sai_adapter::set_fdb_entry_attribute;
-  // fdb_api.get_fdb_entry_attribute = &sai_adapter::get_fdb_entry_attribute;
+  fdb_api.set_fdb_entry_attribute = &sai_adapter::set_fdb_entry_attribute;
+  fdb_api.get_fdb_entry_attribute = &sai_adapter::get_fdb_entry_attribute;
   fdb_api.flush_fdb_entries = &sai_adapter::flush_fdb_entries;
 
   vlan_api.create_vlan = &sai_adapter::create_vlan;
@@ -90,6 +124,7 @@ sai_adapter::sai_adapter()
   vlan_api.set_vlan_member_attribute = &sai_adapter::set_vlan_member_attribute;
   vlan_api.get_vlan_member_attribute = &sai_adapter::get_vlan_member_attribute;
   vlan_api.get_vlan_stats = &sai_adapter::get_vlan_stats;
+  vlan_api.get_vlan_stats_ext = &sai_adapter::get_vlan_stats_ext;
   vlan_api.clear_vlan_stats = &sai_adapter::clear_vlan_stats;
 
   lag_api.create_lag = &sai_adapter::create_lag;
@@ -117,6 +152,9 @@ sai_adapter::sai_adapter()
   router_interface_api.remove_router_interface = &sai_adapter::remove_router_interface;
   router_interface_api.set_router_interface_attribute = &sai_adapter::set_router_interface_attribute;
   router_interface_api.get_router_interface_attribute = &sai_adapter::get_router_interface_attribute;
+  router_interface_api.get_router_interface_stats = &sai_adapter::get_router_interface_stats;
+  router_interface_api.get_router_interface_stats_ext = &sai_adapter::get_router_interface_stats_ext;
+  router_interface_api.clear_router_interface_stats = &sai_adapter::clear_router_interface_stats;
 
   virtual_router_api.create_virtual_router = &sai_adapter::create_virtual_router;
   virtual_router_api.remove_virtual_router = &sai_adapter::remove_virtual_router;
@@ -131,6 +169,12 @@ sai_adapter::sai_adapter()
 
   route_api.create_route_entry = &sai_adapter::create_route_entry;
   route_api.remove_route_entry = &sai_adapter::remove_route_entry;
+  route_api.set_route_entry_attribute = &sai_adapter::set_route_entry_attribute;
+  route_api.get_route_entry_attribute = &sai_adapter::get_route_entry_attribute;
+  route_api.create_route_entries = &sai_adapter::create_route_entries;
+  route_api.remove_route_entries = &sai_adapter::remove_route_entries;
+  route_api.set_route_entries_attribute = &sai_adapter::set_route_entries_attribute;
+  route_api.get_route_entries_attribute = &sai_adapter::get_route_entries_attribute;
 
   policer_api.create_policer = &sai_adapter::create_policer;
   policer_api.remove_policer = &sai_adapter::remove_policer;
@@ -218,6 +262,9 @@ sai_adapter::sai_adapter()
   tunnel_api.remove_tunnel = &sai_adapter::remove_tunnel;
   tunnel_api.set_tunnel_attribute = &sai_adapter::set_tunnel_attribute;
   tunnel_api.get_tunnel_attribute = &sai_adapter::get_tunnel_attribute;
+  tunnel_api.get_tunnel_stats = &sai_adapter::get_tunnel_stats;
+  tunnel_api.get_tunnel_stats_ext = &sai_adapter::get_tunnel_stats_ext;
+  tunnel_api.clear_tunnel_stats = &sai_adapter::clear_tunnel_stats;
   tunnel_api.create_tunnel_term_table_entry = &sai_adapter::create_tunnel_term_table_entry;
   tunnel_api.remove_tunnel_term_table_entry = &sai_adapter::remove_tunnel_term_table_entry;
   tunnel_api.set_tunnel_term_table_entry_attribute = &sai_adapter::set_tunnel_term_table_entry_attribute;
@@ -243,12 +290,14 @@ sai_adapter::sai_adapter()
   buffer_api.set_buffer_pool_attribute = &sai_adapter::set_buffer_pool_attribute;
   buffer_api.get_buffer_pool_attribute = &sai_adapter::get_buffer_pool_attribute;
   buffer_api.get_buffer_pool_stats = &sai_adapter::get_buffer_pool_stats;
+  buffer_api.get_buffer_pool_stats_ext = &sai_adapter::get_buffer_pool_stats_ext;
   buffer_api.clear_buffer_pool_stats = &sai_adapter::clear_buffer_pool_stats;
   buffer_api.create_ingress_priority_group = &sai_adapter::create_ingress_priority_group;
   buffer_api.remove_ingress_priority_group = &sai_adapter::remove_ingress_priority_group;
   buffer_api.set_ingress_priority_group_attribute = &sai_adapter::set_ingress_priority_group_attribute;
   buffer_api.get_ingress_priority_group_attribute = &sai_adapter::get_ingress_priority_group_attribute;
   buffer_api.get_ingress_priority_group_stats = &sai_adapter::get_ingress_priority_group_stats;
+  buffer_api.get_ingress_priority_group_stats_ext = &sai_adapter::get_ingress_priority_group_stats_ext;
   buffer_api.clear_ingress_priority_group_stats = &sai_adapter::clear_ingress_priority_group_stats;
   buffer_api.create_buffer_profile = &sai_adapter::create_buffer_profile;
   buffer_api.remove_buffer_profile = &sai_adapter::remove_buffer_profile;
@@ -290,9 +339,9 @@ sai_adapter::~sai_adapter() {
   (*logger)->info("BM clients closed\n");
 }
 
-sai_status_t sai_adapter::sai_api_query(sai_api_t sai_api_id,
+sai_status_t sai_adapter::sai_api_query(sai_api_t api,
                                         void **api_method_table) {
-  switch (sai_api_id) {
+  switch (api) {
   case SAI_API_PORT:
     *api_method_table = &port_api;
     break;
@@ -393,7 +442,7 @@ sai_status_t sai_adapter::sai_api_query(sai_api_t sai_api_id,
     *api_method_table = &mcast_fdb_api;
     break;
   default:
-    (*logger)->info("unsupported api request made ({})", sai_api_id);
+    (*logger)->info("unsupported api request made ({})", api);
     return SAI_STATUS_FAILURE;
   }
   return SAI_STATUS_SUCCESS;

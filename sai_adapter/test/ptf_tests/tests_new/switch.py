@@ -209,7 +209,7 @@ def sai_thrift_delete_fdb(client, vlan_id, mac, port):
 
 def sai_thrift_flush_fdb_by_vlan(client, vlan_id):
     fdb_attribute1_value = sai_thrift_attribute_value_t(u16=vlan_id)
-    fdb_attribute1 = sai_thrift_attribute_t(id=SAI_FDB_FLUSH_ATTR_VLAN_ID,
+    fdb_attribute1 = sai_thrift_attribute_t(id=SAI_FDB_FLUSH_ATTR_VLAN_ID, #FIXME(BOC)
                                             value=fdb_attribute1_value)
     fdb_attribute2_value = sai_thrift_attribute_value_t(s32=SAI_FDB_FLUSH_ENTRY_TYPE_DYNAMIC)
     # fdb_attribute2_value = sai_thrift_attribute_value_t(s32=SAI_FDB_FLUSH_ENTRY_TYPE_STATIC)

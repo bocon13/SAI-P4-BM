@@ -160,7 +160,7 @@ class L21DBridgeBasicTest(sai_base_test.ThriftInterfaceDataPlane):
         finally:
             sai_thrift_delete_fdb(self.client, mac1, None, bridge_type, bridge)
             sai_thrift_delete_fdb(self.client, mac2, None, bridge_type, bridge)
-            bind_mode = SAI_PORT_BIND_MODE_PORT
+            # bind_mode = SAI_PORT_BIND_MODE_PORT
             vlan_id = 1
             attr_value = sai_thrift_attribute_value_t(s32=bind_mode)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_BIND_MODE, value=attr_value)
@@ -561,7 +561,7 @@ class L21DLagTest(sai_base_test.ThriftInterfaceDataPlane):
             sai_thrift_delete_fdb(self.client, mac1, None, bridge_type, bridge)
             sai_thrift_delete_fdb(self.client, mac2, None, bridge_type, bridge)
             vlan_id = 1
-            bind_mode = SAI_PORT_BIND_MODE_PORT
+            # bind_mode = SAI_PORT_BIND_MODE_PORT
             attr_value = sai_thrift_attribute_value_t(s32=bind_mode)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_BIND_MODE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port0, attr)

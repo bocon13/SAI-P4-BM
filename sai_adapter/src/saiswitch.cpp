@@ -1,4 +1,4 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
 #include <net/if.h>
 
 sai_status_t sai_adapter::create_switch(sai_object_id_t *switch_id,
@@ -210,9 +210,67 @@ sai_status_t sai_adapter::init_switch() {
     switch_metadata_ptr->hostif_trap_groups[hostif_trap_group->sai_object_id] = hostif_trap_group;
     switch_metadata_ptr->default_trap_group = hostif_trap_group->sai_object_id;
 
+// START BOC
+/*
+    ::p4::v1::WriteRequest req;
+    ::p4::v1::WriteResponse resp;
+    ::grpc::ClientContext context;
+    req.set_device_id(1); // Stratum's default device id is 1
+    req.mutable_election_id()->set_high(0); //(absl::Uint128High64(0));
+    req.mutable_election_id()->set_low(1); //(absl::Uint128Low64(1));
+
+    P4InfoManager p4_info_mgr(<P4 configuration from external source>);
+    ::util::Status status = p4_info_mgr.InitializeAndVerify();
+
+    ::p4::config::v1::Table p4_table;
+    // ::p4::config::v1:Action p4_action
+    ASSIGN_OR_RETURN(p4_table, p4_info_mgr.FindTableByName("table_ingress_l3_if"));
+    // ASSIGN_OR_RETURN(p4_action, p4_info_mgr.FindActionByName("set_nhop");
+
+    // auto mf_id = get_mf_id(p4info, "ipv4_lpm", "ipv4.dstAddr");
+    // auto a_id = get_action_id(p4info, "set_nhop");
+    // auto p0_id = get_param_id(p4info, "set_nhop", "nhop_ipv4");
+    // auto p1_id = get_param_id(p4info, "set_nhop", "port");
+
+    auto update = req.add_updates();
+    update->set_type(::p4::v1::Update_Type_INSERT);
+    auto entity = update->mutable_entity();
+    auto table_entry = entity.mutable_table_entry();
+    table_entry->set_table_id(p4_table.preamble().id());
+    // Build Match
+    auto match = table_entry->add_match();
+    match->set_field_id(1); //standard_metadata.ingress_port
+    auto exact = match->mutable_exact();
+    exact->set_value(std::string("\x00\x00", 2)); //default port 0
+    match = table_entry->add_match();
+    match->set_field_id(2); //"hdr.vlan.vid"
+    auto exact = match->mutable_exact();
+    exact->set_value(std::string("\x00\x01", 2)); //default vid 1
+    // Build Action
+    // auto table_action = table_entry->mutable_action();
+    // auto action = table_action->mutable_action();
+    // action->set_action_id(p4_action.preamble().id());
+    // {
+    //   auto param = action->add_params();
+    //   param->set_param_id(p0_id);
+    //   param->set_value(std::string("\x0a\x00\x00\x01", 4));  // 10.0.0.1
+    // }
+    // {
+    //   auto param = action->add_params();
+    //   param->set_param_id(p1_id);
+    //   param->set_value(std::string("\x00\x09", 2));
+    // }
+
+    // // add entry
+    // EXPECT_TRUE(insert(entity).ok());
+
+
+
+    router_p4rt_stub->Write(&context, req, &resp);
+*/
     match_params.clear();
     match_params.push_back(parse_exact_match_param(0, 2)); //default port 0
-    match_params.push_back(parse_exact_match_param(1, 2)); //dfeault vid 1
+    match_params.push_back(parse_exact_match_param(1, 2)); //default vid 1
     bm_router_client_ptr->bm_mt_get_entry_from_key(
         entry, cxt_id, "table_ingress_l3_if", match_params, options);
     rif->handle_ingress_l3 = entry.entry_handle;
@@ -226,6 +284,8 @@ sai_status_t sai_adapter::init_switch() {
     bm_router_client_ptr->bm_mt_get_entry_from_key(
         entry, cxt_id, "table_ingress_vrf", match_params, options);
     rif->handle_ingress_vrf = entry.entry_handle;
+
+// END BOC
 
     // Create MAC learn hostif_table_entry
     HostIF_Table_Entry_obj *hostif_table_entry =

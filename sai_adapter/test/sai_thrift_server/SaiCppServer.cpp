@@ -39,11 +39,11 @@ int test_profile_get_next_value(_In_ sai_switch_profile_id_t profile_id,
                                 _Out_ const char **value) {
   return -1;
 }
-const service_method_table_t test_services = {test_profile_get_value,
-                                              test_profile_get_next_value};
+const sai_service_method_table_t test_services = {test_profile_get_value,
+                                                  test_profile_get_next_value};
 sai_status_t sai_api_initialize(_In_ uint64_t flags,
-                                _In_ const service_method_table_t *services);
-sai_status_t sai_api_query(_In_ sai_api_t sai_api_id,
+                                _In_ const sai_service_method_table_t *services);
+sai_status_t sai_api_query(_In_ sai_api_t api,
                            _Out_ void **api_method_table);
 sai_status_t sai_api_uninitialize(void);
 }
@@ -688,8 +688,8 @@ void sai_thrift_get_port_attribute(sai_thrift_attribute_list_t& thrift_attr_list
     sai_fdb_entry.switch_id = 0;
     parse_mac_str(thrift_fdb_entry.mac_address, sai_fdb_entry.mac_address);
     sai_fdb_entry.vlan_id = thrift_fdb_entry.vlan_id;
-    sai_fdb_entry.bridge_type =
-        (sai_fdb_entry_bridge_type_t)thrift_fdb_entry.bridge_type;
+//    sai_fdb_entry.bridge_type =
+//        (sai_fdb_entry_bridge_type_t)thrift_fdb_entry.bridge_type;
     sai_fdb_entry.bridge_id = thrift_fdb_entry.bridge_id;
     return sai_fdb_entry;
   }

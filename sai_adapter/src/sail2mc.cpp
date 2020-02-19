@@ -1,4 +1,4 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
 
 sai_status_t sai_adapter::create_l2mc_entry(
         _In_ const sai_l2mc_entry_t *l2mc_entry,

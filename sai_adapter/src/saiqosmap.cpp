@@ -1,4 +1,4 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
 
 sai_status_t sai_adapter::create_qos_map(
         _Out_ sai_object_id_t *qos_map_id,

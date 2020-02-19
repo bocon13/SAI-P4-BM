@@ -1,4 +1,4 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
 
 uint32_t get_prefix_length_from_mask(sai_ip4_t mask) {
   uint8_t *byte = (uint8_t*) &mask;
@@ -41,6 +41,7 @@ uint32_t get_prefix_length_from_mask(sai_ip4_t mask) {
   return prefix_length;
 }
 
+// FIXME remove
 BmMatchParams get_match_param_from_route_entry(const sai_route_entry_t *route_entry, Switch_metadata *switch_metadata_ptr) {
   BmMatchParams match_params;
   sai_ip_prefix_t dst_ip = route_entry->destination;
@@ -54,6 +55,31 @@ BmMatchParams get_match_param_from_route_entry(const sai_route_entry_t *route_en
     match_params.push_back(parse_lpm_param(htonl(ipv4), 4, prefix_length));
   }
   return match_params;
+}
+
+// Note: only used for "table_router"
+void fill_p4_match_from_route_entry(const sai_route_entry_t *route_entry,
+                                    Switch_metadata *switch_metadata_ptr,
+                                    ::p4::v1::TableEntry* table_entry) {
+  uint32_t vrf = switch_metadata_ptr->vrs[route_entry->vr_id]->vrf;
+  sai_ip_prefix_t dst_ip = route_entry->destination;
+  uint32_t ipv4;
+  uint32_t prefix_length;
+  // set the vrf field
+  auto match = table_entry->add_match();
+  match->set_field_id(1); // sai_metadata.ingress_vrf
+  auto exact = match->mutable_exact();
+  exact->set_value(parse_param(vrf, 1)); //FIXME(boc) check if endian-ness matters
+  // set the ip field
+  if (dst_ip.addr_family == SAI_IP_ADDR_FAMILY_IPV4) {
+    ipv4 = htonl(dst_ip.addr.ip4);
+    prefix_length = get_prefix_length_from_mask(dst_ip.mask.ip4);
+    auto match = table_entry->add_match();
+    match->set_field_id(2); // hdr.ipv4.dstAddr
+    auto lpm = match->mutable_lpm();
+    lpm->set_value(parse_param(ipv4, 4)); //FIXME(boc) check if endian-ness matters
+    lpm->set_prefix_len(prefix_length);
+  }
 }
 
 sai_status_t sai_adapter::create_route_entry(const sai_route_entry_t *route_entry,
@@ -104,6 +130,35 @@ sai_status_t sai_adapter::create_route_entry(const sai_route_entry_t *route_entr
     }
   }
 
+
+  // ---------------- Start --
+
+  ::p4::v1::WriteRequest req;
+  ::p4::v1::WriteResponse resp;
+  ::grpc::ClientContext context;
+  auto update = req.add_updates();
+  update->set_type(::p4::v1::Update_Type_INSERT);
+  auto entity = update->mutable_entity();
+  auto table_entry = entity->mutable_table_entry();
+  table_entry->set_table_id(33574916); //FIXME p4_table.preamble().id()
+  fill_p4_match_from_route_entry(route_entry, switch_metadata_ptr, table_entry);
+  auto table_action = table_entry->mutable_action();
+  auto p4_action = table_action->mutable_action();
+    // action->set_action_id(p4_action.preamble().id());
+    // {
+    //   auto param = action->add_params();
+    //   param->set_param_id(p0_id);
+    //   param->set_value(std::string("\x0a\x00\x00\x01", 4));  // 10.0.0.1
+    // }
+    // {
+    //   auto param = action->add_params();
+    //   param->set_param_id(p1_id);
+    //   param->set_value(std::string("\x00\x09", 2));
+    // }
+ 
+ 
+  // ----------------
+
   // config tables
   BmAddEntryOptions options;
   BmActionData action_data;
@@ -115,6 +170,13 @@ sai_status_t sai_adapter::create_route_entry(const sai_route_entry_t *route_entr
         bm_router_client_ptr->bm_mt_add_entry(
             cxt_id, "table_router", match_params, "action_set_nhop_id",
             action_data, options);
+        // p4rt
+        p4_action->set_action_id(16829546); //FIXME p4_action.preamble().id()
+        {
+          auto param = p4_action->add_params();
+          param->set_param_id(1); // next_hop_id
+          param->set_value(parse_param(nhop->nhop_id, 1));
+        }
         break;
       // case SAI_OBJECT_TYPE_NEXT_HOP_GROUP
       case SAI_OBJECT_TYPE_ROUTER_INTERFACE:
@@ -122,21 +184,37 @@ sai_status_t sai_adapter::create_route_entry(const sai_route_entry_t *route_entr
         bm_router_client_ptr->bm_mt_add_entry(
             cxt_id, "table_router", match_params, "action_set_erif_set_nh_dstip_from_pkt",
             action_data, options);
+        // p4rt
+        p4_action->set_action_id(16831487); //FIXME p4_action.preamble().id()
+        {
+          auto param = p4_action->add_params();
+          param->set_param_id(1); // egress_rif
+          param->set_value(parse_param(rif->rif_id, 1));
+        }
         break;
       case SAI_OBJECT_TYPE_PORT:
         bm_router_client_ptr->bm_mt_add_entry(
             cxt_id, "table_router", match_params, "action_set_ip2me",
             action_data, options);
+        // p4rt
+        p4_action->set_action_id(16829090); //FIXME p4_action.preamble().id()
         break;
     }
+    (*logger)->info(req.DebugString());
     return SAI_STATUS_SUCCESS;
   }
   if (action == SAI_PACKET_ACTION_DROP) {
     bm_router_client_ptr->bm_mt_add_entry(
             cxt_id, "table_router", match_params, "_drop",
             action_data, options);
+    p4_action->set_action_id(16804562); //FIXME p4_action.preamble().id()
+    (*logger)->info(req.DebugString());
     return SAI_STATUS_SUCCESS;
   }
+  // FIXME write if an action was set
+  //    router_p4rt_stub->Write(&context, req, &resp);
+  (*logger)->info(req.DebugString());
+
   (*logger)->error("requested action type for route entry is not supported");
   return SAI_STATUS_NOT_IMPLEMENTED;
 }
@@ -151,5 +229,68 @@ sai_status_t sai_adapter::remove_route_entry(const sai_route_entry_t *route_entr
   (*logger)->info("trying to remove table_router entry handle {}", bm_entry.entry_handle);
   bm_router_client_ptr->bm_mt_delete_entry(cxt_id, "table_router",
                                     bm_entry.entry_handle);
+
+  // Start gRPC
+  ::p4::v1::WriteRequest req;
+  ::p4::v1::WriteResponse resp;
+  ::grpc::ClientContext context;
+  auto update = req.add_updates();
+  update->set_type(::p4::v1::Update_Type_DELETE);
+  auto entity = update->mutable_entity();
+  auto table_entry = entity->mutable_table_entry();
+  //FIXME table_entry->set_table_id(p4_table.preamble().id());
+  fill_p4_match_from_route_entry(route_entry, switch_metadata_ptr, table_entry);
+  // FIXME write
+  //    router_p4rt_stub->Write(&context, req, &resp);
+  (*logger)->info(req.DebugString());
+
   return SAI_STATUS_SUCCESS;
+}
+
+sai_status_t sai_adapter::set_route_entry_attribute(
+    const sai_route_entry_t *route_entry,
+    const sai_attribute_t *attr) {
+        return SAI_STATUS_NOT_IMPLEMENTED;
+}
+sai_status_t sai_adapter::get_route_entry_attribute(
+    const sai_route_entry_t *route_entry,
+    uint32_t attr_count,
+    sai_attribute_t *attr_list) {
+        return SAI_STATUS_NOT_IMPLEMENTED;
+}
+sai_status_t sai_adapter::create_route_entries(
+    uint32_t object_count,
+    const sai_route_entry_t *route_entry,
+    const uint32_t *attr_count,
+    const sai_attribute_t **attr_list,
+    sai_bulk_op_error_mode_t mode,
+    sai_status_t *object_statuses) {
+        return SAI_STATUS_NOT_IMPLEMENTED;
+}
+
+sai_status_t sai_adapter::remove_route_entries(
+    uint32_t object_count,
+    const sai_route_entry_t *route_entry,
+    sai_bulk_op_error_mode_t mode,
+    sai_status_t *object_statuses) {
+        return SAI_STATUS_NOT_IMPLEMENTED;
+}
+
+sai_status_t sai_adapter::set_route_entries_attribute(
+    uint32_t object_count,
+    const sai_route_entry_t *route_entry,
+    const sai_attribute_t *attr_list,
+    sai_bulk_op_error_mode_t mode,
+    sai_status_t *object_statuses) {
+        return SAI_STATUS_NOT_IMPLEMENTED;
+}
+
+sai_status_t sai_adapter::get_route_entries_attribute(
+    uint32_t object_count,
+    const sai_route_entry_t *route_entry,
+    const uint32_t *attr_count,
+    sai_attribute_t **attr_list,
+    sai_bulk_op_error_mode_t mode,
+    sai_status_t *object_statuses) {
+        return SAI_STATUS_NOT_IMPLEMENTED;
 }

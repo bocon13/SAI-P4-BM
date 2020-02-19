@@ -1,4 +1,4 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
 // extern "C" {
 //   int tun_alloc(char*);
 // }

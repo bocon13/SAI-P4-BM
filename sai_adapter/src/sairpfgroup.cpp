@@ -1,4 +1,4 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
 
 sai_status_t sai_adapter::create_rpf_group(
         _Out_ sai_object_id_t *rpf_group_id,

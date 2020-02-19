@@ -1,4 +1,4 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
 
 sai_status_t sai_adapter::create_bridge(sai_object_id_t *bridge_id,
                                         sai_object_id_t switch_id,
@@ -147,11 +147,11 @@ sai_status_t sai_adapter::create_bridge_port(sai_object_id_t *bridge_port_id,
     is_lag = 0;
   } else { // port_id is lag
     Lag_obj *lag = switch_metadata_ptr->lags[bridge_port->port_id];
-    if (lag->port_obj == nullptr) {
-      bind_mode = SAI_PORT_BIND_MODE_PORT;
-    } else {
-      bind_mode = lag->port_obj->bind_mode;
-    }
+//    if (lag->port_obj == nullptr) {
+//      bind_mode = SAI_PORT_BIND_MODE_PORT;
+//    } else {
+//      bind_mode = lag->port_obj->bind_mode;
+//    }
     l2_if = lag->l2_if;
     is_lag = 1;
   }

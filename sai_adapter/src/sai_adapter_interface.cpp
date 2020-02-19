@@ -1,6 +1,6 @@
-#include "../inc/sai_adapter_interface.h"
-#include "../inc/sai_adapter.h"
-#include "../inc/switch_meta_data.h"
+#include "sai_adapter_interface.h"
+#include "sai_adapter.h"
+#include "switch_meta_data.h"
 
 extern "C" {
 	S_O_Handle create_sai_adapter() { return new sai_adapter(); }
@@ -11,10 +11,10 @@ extern "C" {
 	}
 
 	// API
-	sai_status_t sai_adapter_api_query(S_O_Handle p, sai_api_t sai_api_id,
+	sai_status_t sai_adapter_api_query(S_O_Handle p, sai_api_t api,
 	                                   void **api_method_table) {
 	  sai_adapter *q = (sai_adapter *)p;
-	  return q->sai_api_query(sai_api_id, api_method_table);
+	  return q->sai_api_query(api, api_method_table);
 	}
 
 	sai_object_type_t sai_adapter_object_type_query(S_O_Handle p, sai_object_id_t sai_object_id) {

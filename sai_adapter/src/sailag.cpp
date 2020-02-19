@@ -1,4 +1,4 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
 
 sai_status_t sai_adapter::create_lag(sai_object_id_t *lag_id,
                                      sai_object_id_t switch_id,

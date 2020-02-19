@@ -1,12 +1,12 @@
-#include "../inc/sai_adapter.h"
+#include "sai_adapter.h"
 
-sai_status_t sai_adapter::create_virtual_router (sai_object_id_t *vr_id,
+sai_status_t sai_adapter::create_virtual_router (sai_object_id_t *virtual_router_id,
                                             sai_object_id_t switch_id,
                                             uint32_t attr_count,
                                             const sai_attribute_t *attr_list) {
   (*logger)->info("create_virtual_router");
   uint32_t vrf = switch_metadata_ptr->GetNewVrf(); 
-  VirtualRouter_obj * vr = new VirtualRouter_obj(sai_id_map_ptr);
+  VirtualRouter_obj *vr = new VirtualRouter_obj(sai_id_map_ptr);
   switch_metadata_ptr->vrs[vr->sai_object_id] = vr;
   vr->vrf = vrf;
 
@@ -28,23 +28,23 @@ sai_status_t sai_adapter::create_virtual_router (sai_object_id_t *vr_id,
         break;
       }
 
-    *vr_id = vr->sai_object_id;
+    *virtual_router_id = vr->sai_object_id;
     (*logger)->info("object_id {}. vrf {}", vr->sai_object_id, vrf);
     return SAI_STATUS_SUCCESS;
   }
 }
 
 
-sai_status_t sai_adapter::remove_virtual_router(sai_object_id_t vr_id) {
+sai_status_t sai_adapter::remove_virtual_router(sai_object_id_t virtual_router_id) {
 	(*logger)->info("remove_virtual_router");
-  switch_metadata_ptr->vrs.erase(vr_id);
-  sai_id_map_ptr->free_id(vr_id);
+  switch_metadata_ptr->vrs.erase(virtual_router_id);
+  sai_id_map_ptr->free_id(virtual_router_id);
   return SAI_STATUS_SUCCESS;
 }
 
-sai_status_t sai_adapter::set_virtual_router_attribute(sai_object_id_t vr_id, const sai_attribute_t *attr) {
+sai_status_t sai_adapter::set_virtual_router_attribute(sai_object_id_t virtual_router_id, const sai_attribute_t *attr) {
   return SAI_STATUS_NOT_IMPLEMENTED;
 }
-sai_status_t sai_adapter::get_virtual_router_attribute(sai_object_id_t vr_id, uint32_t attr_count, sai_attribute_t *attr_list) {
+sai_status_t sai_adapter::get_virtual_router_attribute(sai_object_id_t virtual_router_id, uint32_t attr_count, sai_attribute_t *attr_list) {
   return SAI_STATUS_NOT_IMPLEMENTED;
 }
