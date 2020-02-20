@@ -156,9 +156,26 @@ public:
                                     const sai_attribute_t *attr_list);
   static sai_status_t remove_switch(sai_object_id_t switch_id);
   static sai_status_t get_switch_attribute(sai_object_id_t switch_id,
-                                           sai_uint32_t attr_count,
+                                           uint32_t attr_count,
                                            sai_attribute_t *attr_list);
   static sai_status_t set_switch_attribute(sai_object_id_t switch_id, const sai_attribute_t *attr);
+  static sai_status_t get_switch_stats(
+            _In_ sai_object_id_t switch_id,
+            _In_ uint32_t number_of_counters,
+            _In_ const sai_stat_id_t *counter_ids,
+            _Out_ uint64_t *counters);
+
+  static sai_status_t get_switch_stats_ext(
+            _In_ sai_object_id_t switch_id,
+            _In_ uint32_t number_of_counters,
+            _In_ const sai_stat_id_t *counter_ids,
+            _In_ sai_stats_mode_t mode,
+            _Out_ uint64_t *counters);
+
+  static sai_status_t clear_switch_stats(
+            _In_ sai_object_id_t switch_id,
+            _In_ uint32_t number_of_counters,
+            _In_ const sai_stat_id_t *counter_ids);
 // saiport.h
   static sai_status_t create_port(sai_object_id_t *port_id,
                                   sai_object_id_t switch_id,
@@ -231,6 +248,7 @@ public:
             sai_object_id_t port_serdes_id,
             uint32_t attr_count,
             sai_attribute_t *attr_list);
+// saibridge.h
   static sai_status_t create_bridge(sai_object_id_t *bridge_id,
                                     sai_object_id_t switch_id,
                                     uint32_t attr_count,
@@ -249,6 +267,41 @@ public:
                                                 uint32_t attr_count,
                                                 sai_attribute_t *attr_list);
   static sai_status_t set_bridge_port_attribute(sai_object_id_t bridge_port_id, const sai_attribute_t *attr);
+  static sai_status_t get_bridge_port_stats(
+             sai_object_id_t bridge_port_id,
+             uint32_t number_of_counters,
+             const sai_stat_id_t *counter_ids,
+             uint64_t *counters);
+
+  static sai_status_t get_bridge_port_stats_ext(
+             sai_object_id_t bridge_port_id,
+             uint32_t number_of_counters,
+             const sai_stat_id_t *counter_ids,
+             sai_stats_mode_t mode,
+             uint64_t *counters);
+
+  static sai_status_t clear_bridge_port_stats(
+             sai_object_id_t bridge_port_id,
+             uint32_t number_of_counters,
+             const sai_stat_id_t *counter_ids);
+
+  static sai_status_t get_bridge_stats(
+             sai_object_id_t bridge_id,
+             uint32_t number_of_counters,
+             const sai_stat_id_t *counter_ids,
+             uint64_t *counters);
+
+  static sai_status_t get_bridge_stats_ext(
+             sai_object_id_t bridge_id,
+             uint32_t number_of_counters,
+             const sai_stat_id_t *counter_ids,
+             sai_stats_mode_t mode,
+             uint64_t *counters);
+
+  static sai_status_t clear_bridge_stats(
+             sai_object_id_t bridge_id,
+             uint32_t number_of_counters,
+             const sai_stat_id_t *counter_ids);
 // saifdb.h
   static sai_status_t create_fdb_entry(const sai_fdb_entry_t *fdb_entry,
                                        uint32_t attr_count,
@@ -666,7 +719,7 @@ private:
   get_bridge_id_from_fdb_entry(const sai_fdb_entry_t *fdb_entry);
   static void cpu_port_packetHandler(u_char *, const struct pcap_pkthdr *,
                             const u_char *);
-  static void build_fdb_entry(sai_mac_t mac, /*sai_fdb_entry_bridge_type_t bridge_type,*/ sai_vlan_id_t vlan_id, sai_object_id_t bridge_id, sai_fdb_entry_t *fdb_entry);
+  static void build_fdb_entry(sai_mac_t mac, sai_object_id_t bv_id, sai_fdb_entry_t *fdb_entry);
   static void learn_mac(u_char *, cpu_hdr_t *, int);
   static void lookup_hostif_trap_id_table(u_char *packet, cpu_hdr_t *, int);
   static void add_hostif_trap_id_table_entry(uint16_t,

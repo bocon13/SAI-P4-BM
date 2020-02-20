@@ -77,6 +77,9 @@ sai_adapter::sai_adapter()
   switch_api.remove_switch = &sai_adapter::remove_switch;
   switch_api.get_switch_attribute = &sai_adapter::get_switch_attribute;
   switch_api.set_switch_attribute = &sai_adapter::set_switch_attribute;
+  switch_api.get_switch_stats = &sai_adapter::get_switch_stats;
+  switch_api.get_switch_stats_ext = &sai_adapter::get_switch_stats_ext;
+  switch_api.clear_switch_stats = &sai_adapter::clear_switch_stats;
 
   port_api.create_port = &sai_adapter::create_port;
   port_api.remove_port = &sai_adapter::remove_port;
@@ -108,6 +111,12 @@ sai_adapter::sai_adapter()
       &sai_adapter::get_bridge_port_attribute;
   bridge_api.set_bridge_port_attribute =
       &sai_adapter::set_bridge_port_attribute;
+  bridge_api.get_bridge_port_stats = &sai_adapter::get_bridge_port_stats;
+  bridge_api.get_bridge_port_stats_ext = &sai_adapter::get_bridge_port_stats_ext;
+  bridge_api.clear_bridge_port_stats = &sai_adapter::clear_bridge_port_stats;
+  bridge_api.get_bridge_stats = &sai_adapter::get_bridge_stats;
+  bridge_api.get_bridge_stats_ext = &sai_adapter::get_bridge_stats_ext;
+  bridge_api.clear_bridge_stats = &sai_adapter::clear_bridge_stats;
 
   fdb_api.create_fdb_entry = &sai_adapter::create_fdb_entry;
   fdb_api.remove_fdb_entry = &sai_adapter::remove_fdb_entry;

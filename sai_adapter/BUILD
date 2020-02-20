@@ -251,7 +251,9 @@ pkg_tar(
     package_dir = "/usr/lib/x86_64-linux-gnu/",
     srcs = [
         #"@local_system_bin//:usr/local/lib/libruntimestubs.so.0",  # generated thrift api
-        "//SAI-P4-BM/p4-switch:behavioral-model/thrift_src/.libs/libruntimestubs.so.0",
+
+	# Already included in other BMv2...
+        #"//SAI-P4-BM/p4-switch:behavioral-model/thrift_src/.libs/libruntimestubs.so.0",
 
         "@local_system_bin//:usr/lib/x86_64-linux-gnu/libnanomsg.so.5.0.0",
 
@@ -274,6 +276,7 @@ pkg_tar(
     deps = [
         ":sai-bin",
         ":sai-deps",
+        "//SAI:sai_headers_pkg",
     ],
 )
 
@@ -283,8 +286,9 @@ pkg_deb(
     built_using = "unzip (6.0.1)",
     data = ":debian-data",
     depends = [
-        "zlib1g-dev",
-        "unzip",
+        #"zlib1g-dev",
+        #"unzip",
+	#"libthrift-0.11.0", should we use this?
     ],
     description_file = "debian/description",
     homepage = "http://bazel.build",
